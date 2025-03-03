@@ -151,8 +151,13 @@ function makeWord(lettersObject) {
  *    sellTickets([25, 25, 50]) => true
  *    sellTickets([25, 100]) => false (The seller does not have enough money to give change.)
  */
-function sellTickets(/* queue */) {
-  throw new Error('Not implemented');
+function sellTickets(queue) {
+  let money = 0;
+  const totalTickets = queue.length * 25;
+  queue.forEach((item) => {
+    money = totalTickets - (item - 25);
+  });
+  return money >= 0;
 }
 
 /**
@@ -204,7 +209,8 @@ function getJSON(obj) {
  *
  */
 function fromJSON(proto, json) {
-  return Object.create(proto, JSON.stringify(json));
+  const obj = Object.create(proto);
+  return Object.assign(obj, JSON.parse(json));
 }
 
 /**
