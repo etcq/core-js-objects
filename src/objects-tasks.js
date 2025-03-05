@@ -275,8 +275,18 @@ function sortCitiesArray(arr) {
  *    "Poland" => ["Lodz"]
  *   }
  */
-function group(/* array, keySelector, valueSelector */) {
-  throw new Error('Not implemented');
+function group(array, keySelector, valueSelector) {
+  const map = new Map();
+  array.forEach((item) => {
+    const key = keySelector(item);
+    const value = valueSelector(item);
+    if (map.get(key)) {
+      map.set(key, [...map.get(key), value]);
+    } else {
+      map.set(key, [value]);
+    }
+  });
+  return map;
 }
 
 /**
@@ -334,32 +344,110 @@ function group(/* array, keySelector, valueSelector */) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  data: {},
+
+  element(value) {
+    this.checkOrder(1);
+    const obj = Object.create(cssSelectorBuilder);
+    if (Object.hasOwn(this.data, 'element')) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+    obj.data = { element: value };
+    obj.order = 1;
+    return obj;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    this.checkOrder(2);
+    const obj = Object.create(cssSelectorBuilder);
+    if (Object.hasOwn(this.data, 'id')) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+    if (Object.keys(this.data).includes(!'element')) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    obj.data = { ...this.data, id: `#${value}` };
+    obj.order = 2;
+    return obj;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    this.checkOrder(3);
+    const obj = Object.create(cssSelectorBuilder);
+    if (Object.keys(this.data).includes(!'element' || !'id')) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
+    obj.data = {
+      ...this.data,
+      className: `${this.data.className || ''}.${value}`,
+    };
+    obj.order = 3;
+    return obj;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    this.checkOrder(4);
+    const obj = Object.create(cssSelectorBuilder);
+    obj.data = { ...this.data, attr: `[${value}]` };
+    obj.order = 4;
+    return obj;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    this.checkOrder(5);
+    const obj = Object.create(cssSelectorBuilder);
+    obj.data = {
+      ...this.data,
+      pseudoClass: `${this.data.pseudoClass || ''}:${value}`,
+    };
+    obj.order = 5;
+    return obj;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    this.checkOrder(6);
+    const obj = Object.create(cssSelectorBuilder);
+    if (Object.hasOwn(this.data, 'pseudoElem')) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
+    obj.data = { ...this.data, pseudoElem: `::${value}` };
+    obj.order = 6;
+    return obj;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    const obj = Object.create(cssSelectorBuilder);
+    obj.data = {
+      combined: `${selector1.stringify()} ${combinator} ${selector2.stringify()}`,
+    };
+    return obj;
+  },
+
+  stringify() {
+    if (this.data.combined) return this.data.combined;
+    return `${this.data.element || ''}${this.data.id || ''}${
+      this.data.className || ''
+    }${this.data.attr || ''}${this.data.pseudoClass || ''}${
+      this.data.pseudoElem || ''
+    }`;
+  },
+
+  checkOrder(newOrder) {
+    if (this.order > newOrder) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
   },
 };
 
